@@ -1,0 +1,131 @@
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=gb2312" />
+        <title>WebGL: Triangle</title>
+
+        <!-- VertexShader -->
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec3 v3Position;
+            void main(void)
+            {
+                gl_Position = vec4(v3Position, 1.0);
+            }
+        </script>
+
+        <!-- FragmentShader -->
+        <script id="shader-fs" type="x-shader/x-fragment">
+            void main(void)
+            {
+                gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
+            }
+        </script>
+        
+        <script>
+            var webgl                = null;
+            var vertexShaderObject   = null;
+            var fragmentShaderObject = null;
+            var programObject        = null;
+            var triangleBuffer       = null; 
+            var v3PositionIndex      = 0;
+            
+            function ShaderSourceFromScript(scriptID) {
+                var shaderScript = document.getElementById(scriptID);
+                if (shaderScript == null) return "";
+
+                var sourceCode = "";
+                var child = shaderScript.firstChild;
+                while (child) {
+                    if (child.nodeType == child.TEXT_NODE ) {
+                        sourceCode += child.textContent;
+                    }
+                    child = child.nextSibling;
+                }
+
+                return sourceCode;
+            }
+
+            function Init() {
+                var myCanvasObject = document.getElementById('GLCanvas');
+                webgl = myCanvasObject.getContext("experimental-webgl");
+
+                // Setup GL viewport
+                webgl.viewport(0, 0, myCanvasObject.clientWidth, myCanvasObject.clientHeight);
+
+                // Setup shader
+                createShader();
+
+                // Setup mesh
+                createMesh();
+            }
+
+            function createShader() {
+                // Compile Vertex shader
+                vertexShaderObject = webgl.createShader(webgl.VERTEX_SHADER);
+                webgl.shaderSource(vertexShaderObject, ShaderSourceFromScript("shader-vs"));
+                webgl.compileShader(vertexShaderObject);
+                if(!webgl.getShaderParameter(vertexShaderObject, webgl.COMPILE_STATUS)) {
+                    alert("error:vertexShaderObject");
+                    return;
+                }
+
+                // Compile Fragment shader
+                fragmentShaderObject = webgl.createShader(webgl.FRAGMENT_SHADER);
+                webgl.shaderSource(fragmentShaderObject, ShaderSourceFromScript("shader-fs"));
+                webgl.compileShader(fragmentShaderObject);
+                if(!webgl.getShaderParameter(fragmentShaderObject, webgl.COMPILE_STATUS)) {
+                    alert("error:fragmentShaderObject");
+                    return;
+                }
+
+                // Link shader program
+                programObject = webgl.createProgram();
+                webgl.attachShader(programObject, vertexShaderObject);
+                webgl.attachShader(programObject, fragmentShaderObject);
+                webgl.linkProgram(programObject);
+                if(!webgl.getProgramParameter(programObject, webgl.LINK_STATUS)) {
+                    alert("error:programObject");
+                    return;
+                }
+
+                // Bind shader paramters
+                webgl.bindAttribLocation(programObject, v3PositionIndex, "v3Position");
+            }
+
+            function createMesh() {
+                let left   = -1.0;
+                let right  = +1.0;
+                let top    = +1.0;
+                let bottom = -1.0;
+                var vertexes = [
+                     left,                        bottom, 0.0,
+                     left + (right - left) * 0.5, top,    0.0,
+                     right,                       bottom, 0.0];
+
+                triangleBuffer = webgl.createBuffer();
+                webgl.bindBuffer(webgl.ARRAY_BUFFER, triangleBuffer);
+                webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(vertexes), webgl.STATIC_DRAW);
+            }
+            
+            function Render() {
+                // Clear GL buffers
+                webgl.clearColor(0.0, 0.0, 0.0, 0.0);
+                webgl.clear(webgl.COLOR_BUFFER_BIT);
+                
+                // Bind mesh buffers
+                webgl.bindBuffer(webgl.ARRAY_BUFFER, triangleBuffer);
+                webgl.enableVertexAttribArray(v3PositionIndex);
+                webgl.vertexAttribPointer(v3PositionIndex, 3, webgl.FLOAT, false, 0, 0);
+                
+                // Bind a shader program to render
+                webgl.useProgram(programObject);
+                webgl.drawArrays(webgl.TRIANGLES, 0, 3);
+            }
+        </script>
+
+    </head>
+    
+    <body onload="Init();Render();" ontimeupdate="Render()">
+        <canvas id="GLCanvas" style="border:1px solid red;" width='600px' height='450px' />
+    </body>
+    
+</html>
